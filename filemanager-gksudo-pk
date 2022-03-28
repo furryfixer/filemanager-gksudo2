@@ -1,0 +1,132 @@
+#!/bin/bash
+#
+# FILEMANAGER-GKSUDO-PK
+# GPLv3 license, by William Rueger (furryfixer).
+# Provides a File Manager menu option for BOTH DIRECTORIES and
+# FILES to open as Root (only for viewing/text editing).
+# Works in most common File Managers. Pair with
+# "filemanager-gksudo-pk.desktop". The separate GKSUDO-PK script
+# is a hard dependency! and xdg-utils is also required.
+# By invoking gksudo-pk, this script is INSECURE,
+# and allows root access where it may best be avoided. 
+# See gksudo-pk for cautions/information. Directories are opened
+# with running FM as root, if recognized, and default FM if not.
+# Files, regardless of type, are opened ONLY with default text-editor.
+# (gksudo-pk itself has no limitation). Default apps for other
+# mimetypes are ignored to prevent accidental execution, among other
+# things. Also, some unknown/binary files, and most symlinks,
+# are prevented from opening. Use at your own risk!
+#============================================================#
+
+error_end1 () {
+	if ! (zenity --warning --title="gksudo-pk Error" --text="$*" --no-wrap --no-markup 2>/dev/null); then
+		sed 's^\\n^^g' <<< "$*"  # print error without zenity \n format
+	fi
+	exit 1
+}
+
+get_appname () {   # Function avoids blind use of xdg-open
+	if [[ -f  /usr/share/applications/${app_desktop} ]]; then
+		fullpath_dot_dsktp="/usr/share/applications/"$app_desktop
+	elif [[ -f  $HOME/.local/share/applications/${app_desktop} ]]; then
+		fullpath_dot_dsktp="$HOME/.local/share/applications/"$app_desktop
+	else
+		error_end1 "${app_desktop} not found. Check Path, replace or
+change default for this mimetype"
+	fi
+	app_name=$(grep -m 1  "TryExec=" ${fullpath_dot_dsktp} | sed 's/TryExec=//' | cut -d ' ' -f 1)
+	[[ -z $app_name ]] && app_name=$(grep -m 1  "Exec=" ${fullpath_dot_dsktp} | sed 's/Exec=//' | cut -d ' ' -f 1)
+	if ! type -P "$app_name" > /dev/null; then
+		error_end1 "${app_name} executable not found in Path, or
+missing designated mimetype default for ${1}."
+	fi
+}
+#============
+
+if [[ ! -x /bin/xdg-mime ]]; then
+	error_end1 "Missing xdg-utils dependency
+for filemanager-gksudo-pk"
+fi
+if [[ ! -x /bin/gksudo-pk ]] && [[ ! -x /usr/local/bin/gksudo-pk ]]; then
+	error_end1 "Missing the gksudo-pk dependency
+for filemanager-gksudo-pk"
+fi
+FILDIR="$1"
+# If uri, convert to local path name
+FILDIR=$(gio info -a none "${FILDIR}" |  grep 'local path' | cut -d ' ' -f 3-)
+if [[ -L "$FILDIR" ]]; then
+	error_end1 "Filemanager-gksudo-pk will not
+directly open symbolic links"
+fi
+if [[ -d "$FILDIR" ]]; then  # for Directories
+	FILDIR=$(printf '%q' "$FILDIR") # Escape special chars for pkexec call
+	mime_default=`xdg-mime query default inode/directory`
+	if [[ -z $mime_default ]] || [[ $mime_default = "filemanager-gksudo-pk.desktop" ]]; then
+		app_desktop=`grep 'inode/directory'  /usr/share/applications/mimeinfo.cache | \
+cut -d = -f 2 | cut -d ";" -f 1`  # Insist on a sane default for inode/directory
+		xdg-mime default $app_desktop inode/directory
+	else
+		app_desktop=$mime_default
+	fi
+	CALLING_FM=$(ps -o comm= $PPID)
+	if [[ ! $CALLING_FM =~ nautilus|thunar|pcmanfm-qt|pcmanfm|dolphin|caja|konqueror|nemo|krusader|spacefm ]]; then
+		if ps -e | grep -q 'spacefm'; then  # $PPID fails with Spacefm
+			CALLING_FM="spacefm"
+		elif [[ `type -P nautilus` ]]; then
+			CALLING_FM="nautilus"  # PPID fails with nautilus. Frustrating Gnome design.
+		else
+			CALLING_FM=""
+		fi	
+	fi
+	app_maybe=$(which $CALLING_FM 2>/dev/null)
+	if [[ -x $app_maybe ]]; then
+		app_name=$app_maybe
+	else # Calling FM unknown, so fall back to default for directories
+		get_appname "inode/directory"
+	fi
+elif [[ -f "$FILDIR" ]]; then # for files
+	# "xdg-mime query filetype" may disagree with gio, Prefer gio, which most FMs use.
+	file_typ=$(gio info -a standard::content-type ${FILDIR} |  grep 'content-type' | cut -d ' ' -f 4)
+	if [[ ! -r "$FILDIR" ]] || [[ -z $file_typ ]]; then
+		mime_default="unreadable"
+	else
+		mime_default=`xdg-mime query default $file_typ`
+	fi
+	if [[ `grep 'x-msdownload\|x-exec\|dos-exec\|binary' <<< $file_typ` ]]; then
+		error_end1 "STOP! some binary/executable or unknown files prevented
+from opening as ROOT by Filemanager-gksudo-pk."
+	fi
+	if [[ -z $mime_default ]] || [[ $mime_default = "filemanager-gksudo-pk.desktop" ]]; then
+		error_end1 "Gksudo-pk improperly set as the default app
+for this mimetype, or no default set. Reset default
+for this mimetype before using gksudo-pk
+as alternative."
+	fi
+	FILDIR=$(printf '%q' "$FILDIR") # Escape special chars for pkexec call
+	# allow octet-stream only for unreadable files (which may not be binary/exec when readable)
+	if [[ $mime_default != "unreadable" ]] && [[ `grep 'octet' <<< $file_typ` ]]; then 
+		error_end1 "STOP! some binary/executable or unknown files prevented
+from opening as ROOT by Filemanager-gksudo-pk."
+	else
+		app_desktop=`xdg-mime query default text/plain`
+		if [[ -z $app_desktop || $app_desktop = "filemanager-gksudo-pk.desktop" ]]; then ## Improper default, remove it
+			error_end1 "Filemanager-gksudo-pk requires a sane default for
+text/plain, even if file to open is another mimetype.
+Set/reset default app for text/plain and retry."
+		fi
+		get_appname "text"
+	fi
+else
+	exit 1
+fi
+## Double check existence of $app_name to avoid executing $FILDIR directly
+if [[ -z $app_name || $app_name == *"gksudo"* ]]; then
+	error_end1 "STOP! No app found to open, or attempt
+by gksudo-pk to call itself. Reset
+default app for this mimetype."
+fi
+exec gksudo-pk $app_name $FILDIR
+# Still here if exec failed
+error_end1 "${app_name} ${FILDIR} failed to
+work with gksudo-pk"
+fi
