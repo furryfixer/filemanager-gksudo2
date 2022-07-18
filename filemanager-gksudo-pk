@@ -84,13 +84,13 @@ cut -d = -f 2 | cut -d ";" -f 1`  # Insist on a sane default for inode/directory
 	else # Calling FM unknown, so fall back to default for directories
 		get_appname "inode/directory"
 	fi
-elif [[ -f "$FILDIR" ]]; then # for files
+else # for files
 	# "xdg-mime query filetype" may disagree with gio, Prefer gio, which most FMs use.
 	file_typ=$(gio info -a standard::content-type ${FILDIR} |  grep 'content-type' | cut -d ' ' -f 4)
-	if [[ ! -r "$FILDIR" ]] || [[ -z $file_typ ]]; then
+	if [[ -z $file_typ ]]; then
 		mime_default="unreadable"
 	else
-		mime_default=`xdg-mime query default $file_typ`
+		mime_default=`gio mime $file_typ | cut -sd ':' -f 2 | xargs`
 	fi
 	if [[ `grep 'x-msdownload\|x-exec\|dos-exec\|binary' <<< $file_typ` ]]; then
 		error_end1 "STOP! some binary/executable or unknown files prevented
@@ -107,6 +107,8 @@ as alternative."
 	if [[ $mime_default != "unreadable" ]] && [[ `grep 'octet' <<< $file_typ` ]]; then 
 		error_end1 "STOP! some binary/executable or unknown files prevented
 from opening as ROOT by Filemanager-gksudo-pk."
+ 	elif [[ ! -f "$FILDIR" ]]; then
+		error_end1 "STOP! Filemanager-gksudo-pk will not open sockets, or block or character devices"
 	else
 		app_desktop=`xdg-mime query default text/plain`
 		if [[ -z $app_desktop || $app_desktop = "filemanager-gksudo-pk.desktop" ]]; then ## Improper default, remove it
@@ -116,14 +118,33 @@ Set/reset default app for text/plain and retry."
 		fi
 		get_appname "text"
 	fi
-else
-	exit 1
 fi
 ## Double check existence of $app_name to avoid executing $FILDIR directly
 if [[ -z $app_name || $app_name == *"gksudo"* ]]; then
 	error_end1 "STOP! No app found to open, or attempt
 by gksudo-pk to call itself. Reset
 default app for this mimetype."
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 fi
 exec gksudo-pk $app_name $FILDIR
 # Still here if exec failed
