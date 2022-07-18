@@ -10,6 +10,7 @@ The script is fairly universal, and works on most common Desktops, providing "Op
 
 - Refuses to use anything other than the default app for text/plain mimetype to open a file as root.
 - Refuses to open most binary executable files at all.
+- Refuses to open sockets, or block or character devices
 - Refuses to follow symlinks for files and directories.
 
 Of course, if a root instance of a file manager is opened, these safety features are bypassed, and more bad consequences are possible.
