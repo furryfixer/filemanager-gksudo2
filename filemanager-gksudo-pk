@@ -124,27 +124,6 @@ if [[ -z $app_name || $app_name == *"gksudo"* ]]; then
 	error_end1 "STOP! No app found to open, or attempt
 by gksudo-pk to call itself. Reset
 default app for this mimetype."
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 fi
 exec gksudo-pk $app_name $FILDIR
 # Still here if exec failed
