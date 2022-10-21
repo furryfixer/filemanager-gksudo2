@@ -53,7 +53,6 @@ if [[ ! -x /bin/gksudo2 ]] && [[ ! -x /usr/local/bin/gksudo2 ]]; then
 	error_end1 "Missing the gksudo2 dependency
 for filemanager-gksudo2"
 fi
-export NEW_FM=false
 FILDIR="$1"
 # If uri, convert to local path name
 FILDIR=$(gio info -a none "${FILDIR}" |  grep 'local path' | cut -d ' ' -f 3-)
