@@ -1,9 +1,9 @@
 [Desktop Entry]
 Type=Application
-Name=Gksudo-pk (open as Root)
-Name[en_US]=Gksudo-pk (open as Root)
-TryExec=filemanager-gksudo-pk
-Exec=filemanager-gksudo-pk %U
+Name=Gksudo2 (open as Root)
+Name[en_US]=Gksudo2 (open as Root)
+TryExec=filemanager-gksudo2
+Exec=filemanager-gksudo2 %U
 NoDisplay=true
 Terminal=false
 Comment=Open File or Directory from File Manager as Root
