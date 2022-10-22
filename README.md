@@ -15,7 +15,7 @@ The script is fairly universal, and works on most common Desktops, providing "Op
 - Refuses to follow symlinks for files and directories.
 - Insists on password for root instance of filemanager, regardless of sudo credentials
 
-Of course, if a root instance of a file manager is opened, these safety features are bypassed, and more bad consequences are possible.
+Of course, once a root instance of a file manager is opened, these safety features are bypassed, and more bad consequences are possible.
 
 In order for filemanager-gksudo2 to appear in context menus, it must advertise itself as an option for many mimetypes.  Unfortunately, it will become the default app for a mimetype if no default app is already set for the user.  The workaround for this is that the script will generally refuse to proceed if it detects this, and the user will be asked to set another default app for that mimetype. The script will then still appear as a secondary option to open the file or directory.
 
