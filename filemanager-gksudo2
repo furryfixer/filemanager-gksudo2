@@ -17,8 +17,10 @@
 # mimetypes are ignored to prevent accidental execution, among other
 # things. Also, some unknown/binary files, and most symlinks,
 # are prevented from opening. Use at your own risk!
-# Replaces deprecated "filemanager-gksudo-pk"
+# Updated 11/2022
 #============================================================#
+
+RECOGNIZED_FMS="thunar nautilus spacefm pcmanfm-qt pcmanfm dolphin caja konqueror nemo krusader"
 
 error_end1 () {
 	if ! (zenity --warning --title="Gksudo2 Error" --text="$*" --no-wrap --no-markup 2>/dev/null); then
@@ -27,11 +29,11 @@ error_end1 () {
 	exit 1
 }
 
-get_appname () {   # Function avoids blind use of xdg-open
+get_appname () {   # Function avoids blind use of xdg-open, must set $app_desktop first!
 	if [[ -f  /usr/share/applications/${app_desktop} ]]; then
 		fullpath_dot_dsktp="/usr/share/applications/"$app_desktop
-	elif [[ -f  $HOME/.local/share/applications/${app_desktop} ]]; then
-		fullpath_dot_dsktp="$HOME/.local/share/applications/"$app_desktop
+	elif [[ -f  "${HOME}/.local/share/applications/${app_desktop}" ]]; then
+		fullpath_dot_dsktp="${HOME}/.local/share/applications/${app_desktop}"
 	else
 		error_end1 "${app_desktop} not found. Check Path, replace or
 change default for this mimetype"
@@ -55,14 +57,30 @@ for filemanager-gksudo2"
 fi
 FILDIR="$1"
 # If uri, convert to local path name
-FILDIR=$(gio info -a none "${FILDIR}" |  grep 'local path' | cut -d ' ' -f 3-)
+FILDIR=$(gio info -a none "$FILDIR" |  grep 'local path' | cut -d ' ' -f 3-)
 if [[ -L "$FILDIR" ]]; then
 	error_end1 "Filemanager-gksudo2 will not
 directly open symbolic links"
 fi
+CALLING_FM=$(ps -o comm= $PPID)  # may not be accurate (Nautilus/Thunar)
+# If process reaped or parent PID is NOT the calling FM
+NOT_FM_CMD="systemd init runit supervise s6 shim container"
+for bad_fm in $NOT_FM_CMD; do
+	if grep -q $bad_fm <<< "$CALLING_FM"; then 
+		CALLING_FM=""
+		ps -o comm= | tac > /tmp/ps-tac  # Will choose most recently opened known FM
+		while read cmd
+		do
+			if grep -q "$cmd" <<< "$RECOGNIZED_FMS"; then
+				CALLING_FM="$cmd"
+				break
+			fi
+		done < /tmp/ps-tac
+		rm /tmp/ps-tac
+	fi
+done
 if [[ -d "$FILDIR" ]]; then  # for Directories
 	export ROOT_FM=true
-	FILDIR=$(printf '%q' "$FILDIR") # Escape special chars for sudo call
 	mime_default=`xdg-mime query default inode/directory`
 	if [[ -z $mime_default ]] || [[ $mime_default = "filemanager-gksudo2.desktop" ]]; then
 		app_desktop=`grep 'inode/directory'  /usr/share/applications/mimeinfo.cache | \
@@ -71,42 +89,35 @@ cut -d = -f 2 | cut -d ";" -f 1`  # Insist on a sane default for inode/directory
 	else
 		app_desktop=$mime_default
 	fi
-	CALLING_FM=$(ps -o comm= $PPID)
-	if [[ ! $CALLING_FM =~ nautilus|thunar|pcmanfm-qt|pcmanfm|dolphin|caja|konqueror|nemo|krusader|spacefm ]]; then
-		if ps -e | grep -q 'spacefm'; then  # $PPID fails with Spacefm
-			CALLING_FM="spacefm"
-		elif [[ `type -P nautilus` ]]; then
-			CALLING_FM="nautilus"  # PPID fails with nautilus. Frustrating Gnome design.
-		else
-			CALLING_FM=""
-		fi	
-	fi
-	app_maybe=$(which $CALLING_FM 2>/dev/null)
-	if [[ -x $app_maybe ]]; then
-		app_name=$app_maybe
-	else # Calling FM unknown, so fall back to default for directories
-		get_appname "inode/directory"
-	fi
+	app_name=$(which $CALLING_FM 2>/dev/null)
+	[[ ! -x $app_name ]] && get_appname "inode/directory"  # get_appname requires $app_desktop
 else # for files
 	export ROOT_FM=false
-	# "xdg-mime query filetype" may disagree with gio, Prefer gio, which most FMs use.
-	file_typ=$(gio info -a standard::content-type ${FILDIR} |  grep 'content-type' | cut -d ' ' -f 4)
-	if [[ -z $file_typ ]]; then
-		mime_default="unreadable"
-	else
-		mime_default=`gio mime $file_typ | cut -sd ':' -f 2 | xargs`
+	if [[ "$CALLING_FM" =~ dolphin|krusader|konqueror ]]; then # KDE apps use xdg-mime, not gio
+		file_typ=`xdg-mime query filetype "$FILDIR"`
+		if [[ -z $file_typ ]]; then
+			mime_default="unreadable"
+		else
+			mime_default=`xdg-mime query default $file_typ`
+		fi	
+	else  # Most other FMs use gio
+		file_typ=$(gio info -a standard::content-type "$FILDIR" |  grep 'content-type' | cut -d ' ' -f 4)
+		if [[ -z $file_typ ]]; then
+			mime_default="unreadable"
+		else
+			mime_default=`gio mime $file_typ | cut -sd ':' -f 2 | xargs`
+		fi
 	fi
 	if [[ `grep 'x-msdownload\|x-exec\|dos-exec\|binary' <<< $file_typ` ]]; then
 		error_end1 "STOP! some binary/executable or unknown files prevented
 from opening as ROOT by Filemanager-gksudo2."
 	fi
-	if [[ -z $mime_default ]] || [[ $mime_default = "filemanager-gksudo2.desktop" ]]; then
-		error_end1 "Gksudo2 improperly set as the default app
-for this mimetype, or no default set. Reset default
-for this mimetype before using gksudo2
+	if [[ -z $mime_default ]] || [[ "$mime_default" =~ unreadable|"filemanager-gksudo2.desktop" ]]; then
+		error_end1 "Gksudo2 improperly set as the default to open this
+mimetype, or unreadable mimetype, or no default set.
+Reset default for this mimetype before using gksudo2
 as alternative."
 	fi
-	FILDIR=$(printf '%q' "$FILDIR") # Escape special chars for sudo call
 	# allow octet-stream only for unreadable files (which may not be binary/exec when readable)
 	if [[ $mime_default != "unreadable" ]] && [[ `grep 'octet' <<< $file_typ` ]]; then 
 		error_end1 "STOP! some binary/executable or unknown files prevented
@@ -120,7 +131,7 @@ from opening as ROOT by Filemanager-gksudo2."
 text/plain, even if file to open is another mimetype.
 Set/reset default app for text/plain and retry."
 		fi
-		get_appname "text"
+		get_appname "text"  # get_appname requires $app_desktop
 	fi
 fi
 ## Double check existence of $app_name to avoid executing $FILDIR directly
@@ -129,7 +140,8 @@ if [[ -z $app_name || $app_name == *"gksudo"* ]]; then
 by gksudo2 to call itself. Reset
 default app for this mimetype."
 fi
-exec gksudo2 $app_name $FILDIR
+#FILDIR=$(printf '%q' "$FILDIR") # if needed to escape special chars for sudo call
+exec gksudo2 $app_name \"$FILDIR\"
 # Still here if exec failed
 error_end1 "${app_name} ${FILDIR} failed to
 work with gksudo2"
