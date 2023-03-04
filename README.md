@@ -19,8 +19,6 @@ The script is fairly universal, and works on most common Desktops, providing "Op
 
 Of course, once a root instance of a file manager is opened, these safety features are bypassed, and more bad consequences are possible.
 
-In order for filemanager-gksudo2 to appear in context menus, it must advertise itself as an option for many mimetypes.  Unfortunately, it will become the default app for a mimetype if no default app is already set for the user.  The workaround for this is that the script will generally refuse to proceed if it detects this, and the user will be asked to set another default app for that mimetype. The script will then still appear as a secondary option to open the file or directory.
-
 ## Installation
 
 Download or clone the files. Ensure that $PATH includes /usr/local/bin, unless placing executable in /bin or /usr/bin instead. From the download directory, do the following AS ROOT:
@@ -37,7 +35,11 @@ You may need to restart your desktop session.
 
 ## Notes:
 
-The option showing in context menus will be "**gksudo2 (open as ROOT)**".  For all files, the default app for text/plain mime-types will be used. Once a directory is opened as root, the root user opens files as normal without restrictions (be careful).  The calling file manager will be used to open directories if it can be determined.  Otherwise, the script tries to guess which file manager to use, or falls back to the system default for the inode/directory mimetype. Please DO NOT install the .desktop file in the system location, where any new user will be tempted to use it (even though it requires sudo rights).  If more than one file/directory is selected, only the first will be acted on. For files, a "NOPASSWD" sudoer configuration is honored, but cached sudo credentials are not honored. For directories, "NOPASSWD" is ignored, and a password will always be required.
+The option showing in context menus will be "**gksudo2 (open as ROOT)**".  For all files, the default app for text/plain mime-types will be used. Once a directory is opened as root, the root user opens files as normal without restrictions (be careful).  
+
+In order for filemanager-gksudo2 to appear in context menus, it must advertise itself as an option for many mimetypes.  Unfortunately, it will become the default app for a mimetype if no default app is already set for the user.  The workaround for this is that the script will generally refuse to proceed if it detects this, and the user will be asked to set another default app for that mimetype.  The script will then still appear as a secondary option to open the file or directory.
+
+The calling file manager will be used to open directories if it can be determined.  Otherwise, the script tries to guess which file manager to use, or falls back to the system default for the inode/directory mimetype. Please DO NOT install the .desktop file in the system location, where any new user will be tempted to use it (even though it requires sudo rights).  If more than one file/directory is selected, only the first will be acted on. For files, a "NOPASSWD" sudoer configuration is honored, but cached sudo credentials are not honored. For directories, "NOPASSWD" is ignored, and a password will always be required.
 ### Notes about deprecated filemanager-gksudo-pk
 Gksudo-pk is deprecated and has been replaced with gksudo2. The current renamed and rewritten version of filemanager-gksudo2 will NOT be compatible with gksudo-pk.
  
