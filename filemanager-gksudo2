@@ -17,7 +17,7 @@
 # mimetypes are ignored to prevent accidental execution, among other
 # things. Also, some unknown/binary files, and most symlinks,
 # are prevented from opening. Use at your own risk!
-# Updated 03/2023
+# Updated 07/2023
 #============================================================#
 
 RECOGNIZED_FMS="thunar nautilus spacefm pcmanfm-qt pcmanfm dolphin caja konqueror nemo krusader"
@@ -44,6 +44,15 @@ change default for this mimetype"
 		error_end1 "${app_name} executable not found in Path, or
 missing designated mimetype default for ${1}."
 	fi
+}
+
+gio_file_typ () {
+	file_typ=`gio info -a standard::content-type "$1" |  grep 'content-type' | cut -d ' ' -f 4`
+		if [[ -z $file_typ ]]; then
+			mime_default=""
+		else
+			mime_default=`gio mime $file_typ | cut -sd ':' -f 2 | xargs`
+		fi
 }
 #============
 
@@ -107,17 +116,12 @@ as ROOT by Filemanager-gksudo2."
 	elif [[ "$CALLING_FM" =~ dolphin|krusader|konqueror ]]; then # KDE apps use xdg-mime, not gio
 		file_typ=`xdg-mime query filetype "$FILDIR"`
 		if [[ -z $file_typ ]]; then
-			mime_default=""
+			gio_file_typ $FILDIR  # Fallback if xdg-mime not reading
 		else
 			mime_default=`xdg-mime query default $file_typ`
 		fi
 	else  # Most other FMs use gio
-		file_typ=`gio info -a standard::content-type "$FILDIR" |  grep 'content-type' | cut -d ' ' -f 4`
-		if [[ -z $file_typ ]]; then
-			mime_default=""
-		else
-			mime_default=`gio mime $file_typ | cut -sd ':' -f 2 | xargs`
-		fi
+		gio_file_typ $FILDIR
 	fi
 	if [[ `grep 'x-msdownload\|x-exec\|dos-exec\|binary\|pie-exec' <<< $file_typ` ]]; then
 		error_end1 "STOP! some binary/executable or unknown files prevented
