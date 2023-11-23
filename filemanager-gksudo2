@@ -127,6 +127,11 @@ as ROOT by Filemanager-gksudo2."
 		error_end1 "STOP! some binary/executable or unknown files prevented
 from opening as ROOT by Filemanager-gksudo2."
 	fi
+	if [[ `grep 'x-empty\|x-zerosize' <<< $file_typ` ]]; then
+		error_end1 "STOP! Gksudo2 prevented from opening empty files due to
+vague mimetype. If Gksudo2 is the default to open,
+reset default."
+	fi
 	if [[ -z $mime_default ]] || [[ $mime_default = "filemanager-gksudo2.desktop" ]]; then
 		error_end1 "Gksudo2 improperly set as the default to open this mimetype,
 or no default set. Reset default for this mimetype
