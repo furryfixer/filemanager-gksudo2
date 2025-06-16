@@ -110,8 +110,8 @@ else # for files
 			error_end1 "Stop! executable files with unreadable
 mimetypes are prevented from opening
 as ROOT by Filemanager-gksudo2."
-		else # unknown type but not executable
-			mime_default="unknown"
+		else # unknown type by xdg mime, not executable so try gio 
+			gio_file_typ $FILDIR
 		fi 
 	elif [[ "$CALLING_FM" =~ dolphin|krusader|konqueror ]]; then # KDE apps use xdg-mime, not gio
 		file_typ=`xdg-mime query filetype "$FILDIR"`
