@@ -31,6 +31,10 @@ Then as regular user (NOT ROOT!):
 - cp filemanager-gksudo2.desktop  ~/.local/share/applications/filemanager-gksudo2.desktop
 - update-desktop-database ~/.local/share/applications
 
+Dolphin users require a symlink for proper integration of mimetype defaults:
+  
+  **sudo ln -s /etc/xdg/menus/plasma-applications.menu  /etc/xdg/menus/applications.menu**
+  
 You may need to restart your desktop session.
 
 ## Notes:
