@@ -1,7 +1,7 @@
 # filemanager-gksudo2
 ### File Manager Context Menu Option to open Directories or Files as Root
 
-Filemanager-gksudo2 is a companion script to **gksudo2**, providing a context menu option from most common file managers in both **Wayland** and **X11**.  Sudo rights, a bash script and .desktop file are required to accomplish this. If your FM(file manager) has "Open as Root" functionality, this script may be a less desirable approach. It may be slightly safer in some situations however. See the gksudo2 Readme about the significant security risks involved, as well as detailed info about gksudo2. Use at your own risk! File managers tested include: **nautilus|thunar|pcmanfm-qt|pcmanfm|dolphin|caja|konqueror|nemo|krusader|spacefm**. See the **CHANGELOG-10-2025** file, as the script has been modified and improved.
+Filemanager-gksudo2 is a companion script to **gksudo2**, providing a context menu option from most common file managers in both **Wayland** and **X11**.  Sudo rights, a bash script and .desktop file are required to accomplish this. If your FM(file manager) has "Open as Root" functionality, this script may be a less desirable approach. It may be slightly safer in some situations however. See the gksudo2 Readme about the significant security risks involved, as well as detailed info about gksudo2. Use at your own risk! File managers tested include: **nautilus, thunar, pcmanfm-qt, pcmanfm, dolphin, caja, konqueror, nemo, krusader, spacefm**. See the **CHANGELOG-10-2025** file, as the script has been modified and improved.
 
 ## Dependencies
 **gksudo2 (and it's dependencies), xdg-utils, glib**   
