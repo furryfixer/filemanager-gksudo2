@@ -1,0 +1,30 @@
+Comments:
+
+Recent changes to both Nautilus and Dolphin have impacted (or broken) filemanager-gksudo2. Both browsers have improved native methods to elevate to root access when needed, which may be superior to using gksudo2.  This app still has better warning and limitations on which file types may be opened or saved as root, but (less securely) allows the user to make changes while root, whereas the browsers only elevate privileges to access initially, and when ready to save.  Gksudo2 has no sandboxing, but unless actively testing malware, this author sees little benefit, since in most typical setups, the user must provide an administrator level sudo password to create the sandbox. For those who still prefer it, as of 10/2025, filemanager-gksudo2 once again works for all of the browsers previously listed, including Nautilus and Dolphin.  See the READ.ME for before installing for the first time.
+
+CHANGELOG-10-2025
+
+**$HOME/.local/share/applications/filemanager-gksudo2.desktop** now requires "NoDisplay=false". Otherwise, Dolphin does not show the gksudo option. Note that Dolphin/Plasma file association defaults may differ from what xdg-mime indicates. It may help to link default menus to plasma-menus.
+
+sudo ln -s /etc/xdg/mime/plasma-applications.menu /etc/mime/applications.menu
+	
+A new **fmgks2-user-setup** script is provided, and as the name implies, it sets up filemanager-gksudo2 for a specific non-root user. This creates file associations, but prevents the app from becoming default. The separate .desktop file is removed from the repository, as fmgks2-user-setup will generate it. **It is recommended that all users run fmgks2-user-setup to regenerate file associations.** This will prevent this script from becoming default, and bring in corrections to the .desktop file.
+
+Changes to filemanager-gksudo script
+
+- Allow handling of "admin://" URI prefix (mostly Nautilus). 
+- Create passthrough to call Nautilus admin:// directly for directories, but not files.
+
+- Added a one-time use of sudo within the script, even before calling gksudo2, to identify gio mime info for protected files/directories. A new temporary file is used to facilitate this.
+
+- Always prompt for password if file is a directory, regardless of sudo credentials. This functionality previously in gksudo2 instead of this script. Correct occasional missed or double password request.
+
+- Improved handling of filenames and mime defaults.
+
+- More reliable identification of prohibited symlinks, sockets, block and character devices.
+
+- Correct double leading forward slashes in filenames, which failed for Libreoffice
+
+- Better identification of the most recently opened file manager (FM), if calling FM cannot be determined. This makes it less likely that the wrong FM (or a different one) will be used to open a directory with gksudo2.
+
+- Suppress notification display of warnings from the Zenity process itself.
