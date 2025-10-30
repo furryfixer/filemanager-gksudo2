@@ -1,0 +1,78 @@
+#!/bin/bash
+clear
+echo "#///////////////////////////////////////////////////////////
+# FMGKS2-USER-SETUP
+# Set up filemanager-gksudo2 for individual user.
+# Do NOT RUN AS ROOT. The separate gksudo2 package and its
+# dependencies are required. You must also manually install
+# the filemanager-gksudo2 executable in a system location,
+# usually /usr/local/bin or /usr/bin. The script will create
+# a .desktop file in $HOME/.local/share/applications
+# to install mimetype associations, but makes sure gksudo2
+# does not become default for any of them.
+#/////////////////////////////////////////////////////////////
+
+Press <Enter> to continue "
+read yn
+if [ "$(id -u)" = "0" ]; then
+   echo "filemanager-gksudo2 user setup must not be run as root" 1>&2
+   exit 1
+fi
+if [ ! -x "/usr/local/bin/gksudo2" ] && [ ! -x "/usr/bin/gksudo2" ]; then
+	echo " gksudo2 is not found, or not executable, and is required
+	to use filemanager-gksudo2. See separate Github package for gksudo2."
+	exit 1
+fi
+if [ ! -x "/usr/local/bin/filemanager-gksudo2" ] && [ ! -x "/usr/bin/filemanager-gksudo2" ]; then
+	echo " filemanager-gksudo2 is not installed in /usr/local/bin or /usr/bin, or
+	is not executable. Correct this and run setup again."
+	exit 1
+fi
+if [[ -f "$HOME/.local/share/applications/filemanager-gksudo2.desktop" ]]; then
+	echo "A previous version of the .desktop file is already present.
+	Do wish to overwrite it (y/n)?"
+	read yn
+	if [[ $yn = [Nn] ]]; then
+		exit 1
+	else
+		rm $HOME/.local/share/applications/filemanager-gksudo2.desktop
+		update-desktop-database $HOME/.local/share/applications
+	fi
+fi
+echo "Proceeding with user set up"
+
+echo "[Desktop Entry]
+Type=Application
+Name=Gksudo2 (open as Root)
+Name[en_US]=Gksudo2 (open as Root)
+TryExec=filemanager-gksudo2
+Exec=filemanager-gksudo2 %U
+NoDisplay=false
+Terminal=false
+Comment=Open File or Directory from File Manager as Root
+Icon=applications-other
+MimeType=application/pdf;application/json;application/xhtml+xml;application/batch-SMTP;application/batch-smtp;application/ecmascript;application/ghostview;application/gzip;application/index;application/index.vnd;application/java-vm;application/javascript;application/dialog-info+xml;application/docbook+xml;application/epub+zip;application/example;application/h224;application/java-archive;application/mbox;application/msword;application/nasdata;application/octet-stream;application/pgp-keys;application/pgp-signature;application/postscript;application/rar;application/rtf;application/vnd.android.package-archive;application/vnd.cups-pdf;application/vnd.cups-postscript;application/vnd.cups-ppd;application/vnd.cups-raster;application/vnd.cups-raw;application/vnd.hal+json;application/vnd.hal+xml;application/vnd.lotus-notes;application/vnd.lotus-wordpro;application/vnd.macports.portpkg;application/vnd.mozilla.xul+xml;application/vnd.ms-asf;application/vnd.ms-cab-compressed;application/vnd.ms-excel;application/vnd.ms-word.document.macroEnabled.12;application/vnd.ms-word.document.macroenabled.12;application/vnd.ms-word.template.macroEnabled.12;application/vnd.ms-word.template.macroenabled.12;application/vnd.ms-works;application/vnd.ms-wpl;application/vnd.ms-xpsdocument;application/vnd.oasis.opendocument.chart;application/vnd.oasis.opendocument.chart-template;application/vnd.oasis.opendocument.database;application/vnd.oasis.opendocument.spreadsheet;application/vnd.oasis.opendocument.spreadsheet-template;application/vnd.oasis.opendocument.text;application/vnd.oasis.opendocument.text-master;application/vnd.oasis.opendocument.text-template;application/vnd.oasis.opendocument.text-web;application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.document;application/vnd.openxmlformats-officedocument.wordprocessingml.document.glossary+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.template;application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml;application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml;application/wordperfect;application/wordperfect5.1;application/x-123;application/x-7z-compressed;application/x-abiword;application/x-apple-diskimage;application/x-bittorrent;application/x-bzip;application/x-bzip2;application/x-cab;application/x-cdf;application/x-cpio;application/x-csh;application/x-debian-package;application/x-desktop;application/x-extension-cache;application/x-extension-cfg;application/x-font;application/x-font-bdf;application/x-font-dos;application/x-font-framemaker;application/x-font-ghostscript;application/x-font-libgrx;application/x-font-linux-psf;application/x-font-otf;application/x-font-pcf;application/x-font-snf;application/x-font-ttf;application/x-font-type1;application/x-gtar;application/x-gzip;application/x-info;application/x-install-instructions;application/x-java-applet;application/x-java-bean;application/x-java-jnlp-file;application/x-javascript;application/x-latex;application/x-md5;application/x-pkcs7-certificates;application/x-pkcs7-certreqresp;application/x-pkcs7-crl;application/x-python-code;application/x-rar-compressed;application/x-rdp;application/x-ruby;application/x-sh;application/x-shellscript;application/x-sql;application/x-tar;application/x-tcl;application/x-tex;application/x-tex-gf;application/x-tex-pk;application/x-tex-tfm;application/x-texinfo;application/x-trash;application/x-troff;application/x-troff-man;application/x-xz;application/xml;application/zip;application/zlib;inode/blockdevice;inode/chardevice;inode/directory;inode/directory-locked;inode/fifo;inode/socket;text/cache-manifest;text/calendar;text/comma-separated-values;text/css;text/csv;text/directory;text/dns;text/ecmascript;text/english;text/enriched;text/example;text/h323;text/html;text/iuls;text/javascript;text/mathml;text/n3;text/parityfec;text/plain;text/prs.fallenstein.rst;text/prs.lines.tag;text/red;text/rfc822-headers;text/richtext;text/rtf;text/rtp-enc-aescm128;text/rtx;text/scriptlet;text/sgml;text/t140;text/tab-separated-values;text/texmacs;text/troff;text/turtle;text/ulpfec;text/uri-list;text/vcard;text/vnd.DMClientScript;text/vnd.IPTC.NITF;text/vnd.IPTC.NewsML;text/vnd.abc;text/vnd.curl;text/vnd.curl.dcurl;text/vnd.curl.mcurl;text/vnd.curl.scurl;text/vnd.dmclientscript;text/vnd.dvb.subtitle;text/vnd.esmertec.theme-descriptor;text/vnd.flatland.3dml;text/vnd.fly;text/vnd.fmi.flexstor;text/vnd.graphviz;text/vnd.in3d.3dml;text/vnd.in3d.spot;text/vnd.iptc.newsml;text/vnd.iptc.nitf;text/vnd.latex-z;text/vnd.motorola.reflex;text/vnd.ms-mediapackage;text/vnd.net2phone.commcenter.command;text/vnd.si.uricatalogue;text/vnd.sun.j2me.app-descriptor;text/vnd.trolltech.linguist;text/vnd.wap.si;text/vnd.wap.sl;text/vnd.wap.wml;text/vnd.wap.wmlscript;text/x-asm;text/x-bibtex;text/x-boo;text/x-c;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-component;text/x-crontab;text/x-csh;text/x-csrc;text/x-diff;text/x-dsrc;text/x-fortran;text/x-haskell;text/x-java;text/x-java-source;text/x-lilypond;text/x-literate-haskell;text/x-makefile;text/x-matlab;text/x-moc;text/x-nfo;text/x-opml;text/x-pascal;text/x-pcs-gcd;text/x-perl;text/x-psp;text/x-python;text/x-python3;text/x-scala;text/x-server-parsed-html;text/x-setext;text/x-sfv;text/x-sh;text/x-shellscript;text/x-tcl;text/x-tex;text/x-uuencode;text/x-vcalendar;text/x-vcard;text/xml;text/xml-external-parsed-entity;
+" > $HOME/.local/share/applications/filemanager-gksudo2.desktop
+
+TXT_DEFAULT=$(xdg-mime query default text/plain)
+if [[ $TXT_DEFAULT = "filemanager-gksudo2.desktop" ]]; then 
+	gio mime text/plain | sed '1,/Recommended/d' > /tmp/text-recommend 
+	while IFS= read -r line || [[ -n "$line" ]]; do
+		if [[ $line != "filemanager-gksudo2.desktop" ]]; then
+			TXT_DEFAULT=$line
+			break
+		fi
+	done < "/tmp/text-recommend"	
+fi
+update-desktop-database $HOME/.local/share/applications
+
+for mimtyp in application/pdf application/json application/xhtml+xml application/batch-SMTP application/batch-smtp application/ecmascript application/ghostview application/gzip application/index application/index.vnd application/java-vm application/javascript application/dialog-info+xml application/docbook+xml application/epub+zip application/example application/h224 application/java-archive application/mbox application/msword application/nasdata application/octet-stream application/pgp-keys application/pgp-signature application/postscript application/rar application/rtf application/vnd.android.package-archive application/vnd.cups-pdf application/vnd.cups-postscript application/vnd.cups-ppd application/vnd.cups-raster application/vnd.cups-raw application/vnd.hal+json application/vnd.hal+xml application/vnd.lotus-notes application/vnd.lotus-wordpro application/vnd.macports.portpkg application/vnd.mozilla.xul+xml application/vnd.ms-asf application/vnd.ms-cab-compressed application/vnd.ms-excel application/vnd.ms-word.document.macroEnabled.12 application/vnd.ms-word.document.macroenabled.12 application/vnd.ms-word.template.macroEnabled.12 application/vnd.ms-word.template.macroenabled.12 application/vnd.ms-works application/vnd.ms-wpl application/vnd.ms-xpsdocument application/vnd.oasis.opendocument.chart application/vnd.oasis.opendocument.chart-template application/vnd.oasis.opendocument.database application/vnd.oasis.opendocument.spreadsheet application/vnd.oasis.opendocument.spreadsheet-template application/vnd.oasis.opendocument.text application/vnd.oasis.opendocument.text-master application/vnd.oasis.opendocument.text-template application/vnd.oasis.opendocument.text-web application/vnd.openxmlformats-officedocument.wordprocessingml.comments+xml application/vnd.openxmlformats-officedocument.wordprocessingml.document application/vnd.openxmlformats-officedocument.wordprocessingml.document.glossary+xml application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml application/vnd.openxmlformats-officedocument.wordprocessingml.template application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml application/wordperfect application/wordperfect5.1 application/x-123 application/x-7z-compressed application/x-abiword application/x-apple-diskimage application/x-bittorrent application/x-bzip application/x-bzip2 application/x-cab application/x-cdf application/x-cpio application/x-csh application/x-debian-package application/x-desktop application/x-extension-cache application/x-extension-cfg application/x-font application/x-font-bdf application/x-font-dos application/x-font-framemaker application/x-font-ghostscript application/x-font-libgrx application/x-font-linux-psf application/x-font-otf application/x-font-pcf application/x-font-snf application/x-font-ttf application/x-font-type1 application/x-gtar application/x-gzip application/x-info application/x-install-instructions application/x-java-applet application/x-java-bean application/x-java-jnlp-file application/x-javascript application/x-latex application/x-md5 application/x-pkcs7-certificates application/x-pkcs7-certreqresp application/x-pkcs7-crl application/x-python-code application/x-rar-compressed application/x-rdp application/x-ruby application/x-sh application/x-shellscript application/x-sql application/x-tar application/x-tcl application/x-tex application/x-tex-gf application/x-tex-pk application/x-tex-tfm application/x-texinfo application/x-trash application/x-troff application/x-troff-man application/x-xz application/xml application/zip application/zlib inode/blockdevice inode/chardevice inode/directory inode/directory-locked inode/fifo inode/socket text/cache-manifest text/calendar text/comma-separated-values text/css text/csv text/directory text/dns text/ecmascript text/english text/enriched text/example text/h323 text/html text/iuls text/javascript text/mathml text/n3 text/parityfec text/plain text/prs.fallenstein.rst text/prs.lines.tag text/red text/rfc822-headers text/richtext text/rtf text/rtp-enc-aescm128 text/rtx text/scriptlet text/sgml text/t140 text/tab-separated-values text/texmacs text/troff text/turtle text/ulpfec text/uri-list text/vcard text/vnd.DMClientScript text/vnd.IPTC.NITF text/vnd.IPTC.NewsML text/vnd.abc text/vnd.curl text/vnd.curl.dcurl text/vnd.curl.mcurl text/vnd.curl.scurl text/vnd.dmclientscript text/vnd.dvb.subtitle text/vnd.esmertec.theme-descriptor text/vnd.flatland.3dml text/vnd.fly text/vnd.fmi.flexstor text/vnd.graphviz text/vnd.in3d.3dml text/vnd.in3d.spot text/vnd.iptc.newsml text/vnd.iptc.nitf text/vnd.latex-z text/vnd.motorola.reflex text/vnd.ms-mediapackage text/vnd.net2phone.commcenter.command text/vnd.si.uricatalogue text/vnd.sun.j2me.app-descriptor text/vnd.trolltech.linguist text/vnd.wap.si text/vnd.wap.sl text/vnd.wap.wml text/vnd.wap.wmlscript text/x-asm text/x-bibtex text/x-boo text/x-c text/x-c++hdr text/x-c++src text/x-chdr text/x-component text/x-crontab text/x-csh text/x-csrc text/x-diff text/x-dsrc text/x-fortran text/x-haskell text/x-java text/x-java-source text/x-lilypond text/x-literate-haskell text/x-makefile text/x-matlab text/x-moc text/x-nfo text/x-opml text/x-pascal text/x-pcs-gcd text/x-perl text/x-psp text/x-python text/x-python3 text/x-scala text/x-server-parsed-html text/x-setext text/x-sfv text/x-sh text/x-shellscript text/x-tcl text/x-tex text/x-uuencode text/x-vcalendar text/x-vcard text/xml text/xml-external-parsed-entity
+do
+	echo -n "."
+	if (xdg-mime query default $mimtyp | grep -q 'gksudo2'); then
+		xdg-mime default $TXT_DEFAULT $mimtyp
+	fi
+done
+echo " 
+Filemanager-gksudo2 successfully setup for user "$USER"."
+exit 0
