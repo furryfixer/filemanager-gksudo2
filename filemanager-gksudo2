@@ -17,7 +17,7 @@
 # mimetypes are ignored to prevent accidental execution, among other
 # things. Also, some unknown/binary files, and most symlinks,
 # are prevented from opening. Use at your own risk!
-# Updated 10/2025.
+# Updated 11/2025.
 #============================================================#
 
 RECOGNIZED_FMS="thunar nautilus spacefm pcmanfm-qt pcmanfm dolphin caja konqueror nemo krusader"
@@ -66,18 +66,18 @@ If proper password, likely temporarily locked out."
 #============
 
 admin_call=false
-if [[ ! -x /bin/xdg-mime ]]; then
+if [[ ! -x /usr/bin/xdg-mime ]]; then
 	error_end1 "Missing xdg-utils dependency
 for filemanager-gksudo2"
 fi
-if [[ ! -x /bin/gksudo2 ]] && [[ ! -x /usr/local/bin/gksudo2 ]]; then
+if [[ ! -x /usr/bin/gksudo2 ]] && [[ ! -x /usr/local/bin/gksudo2 ]]; then
 	error_end1 "Missing the gksudo2 dependency
 for filemanager-gksudo2"
 fi
 # Check to see if sudo will bypass password
 sudo -nv  >/dev/null 2>&1 && sudo_wont_ask=true || sudo_wont_ask=false 
 [[ ! -d /tmp/gk ]] && (mkdir -m0777 /tmp/gk)  # avoid sticky bit issues if su before running
-if [[ ! -e /bin/zenity && /usr/bin/zenity ]]; then
+if [[ ! -e /usr/bin/zenity ]]; then
 	echo "STOP! Zenity is not found, and required to run gksudo2"
 	exit 1
 fi
@@ -93,23 +93,16 @@ export SUDO_ASKPASS="/tmp/gk/zenity-sudo-passwd"
 FILDIR="$1"
 if grep -q 'admin:/' <<< $1; then
 	admin_call=true
-	FILDIR=$(sed 's/admin:\///' <<< $FILDIR)
 fi
-if grep -q 'file:/' <<< $1; then
-	FILDIR=$(sed 's/file:\///' <<< $FILDIR)
-fi
-sudo_znty gio info $FILDIR > /tmp/gk/giofile
-# If uri, convert to local path name. Likely redundant
-LOCALPATH=$(grep 'local path' /tmp/gk/giofile | cut -d ' ' -f 3-)  
-if (grep -q 'symlink: TRUE' /tmp/gk/giofile) || (grep -q 'socket' /tmp/gk/giofile); then 
+LOCALPATH=$(sed 's#.*://##' <<< $FILDIR) # Process URI to local path
+if [[ -L "$LOCALPATH" ]] || [[ -S "$LOCALPATH" ]]; then
 	error_end1 "Filemanager-gksudo2 will not
 directly open symbolic links or sockets"
 fi
-if (grep -q 'blockdevice' /tmp/gk/giofile) || (grep -q 'chardevice' /tmp/gk/giofile); then
+if [[ -b "$LOCALPATH" ]] || [[ -c "$LOCALPATH" ]]; then
 	error_end1 "Filemanager-gksudo2 will not
-directly open block or character devices"
+directly open block or character devices"	
 fi
-gio_file_typ=$(grep 'standard::content-type' /tmp/gk/giofile | cut -d ' ' -f 4)
 CALLING_FM=$(ps -o comm= $PPID)  # may not be accurate (Nautilus/Thunar)
 # If process reaped or parent PID is NOT the calling FM
 NOT_FM_CMD="systemd init runit supervise s6 shim container"
@@ -127,16 +120,13 @@ for bad_fm in $NOT_FM_CMD; do
 		rm /tmp/ps-tac
 	fi
 done
-
 if [[ -d $LOCALPATH ]]; then  # for Directories
+
 	if $admin_call; then
 		error_end1 "STOP! Admin root privileges already present.
 gksudo is unnecessary for directories and may fail. Use only if privileges not 
 already elevated."	
 	fi
-	if $sudo_wont_ask; then 	 # force password for directories
-		su -c : $USER <<< "$($SUDO_ASKPASS)" >/dev/null 2>&1 || error_end1 "Password Not Recognized"
-	fi	
 	mime_default=`xdg-mime query default inode/directory`
 	if [[ -z $mime_default ]] || [[ $mime_default = "filemanager-gksudo2.desktop" ]]; then
 		app_desktop=`grep 'inode/directory'  /usr/share/applications/mimeinfo.cache | \
@@ -147,8 +137,19 @@ cut -d = -f 2 | cut -d ";" -f 1`  # Insist on a sane default for inode/directory
 	fi
 	app_name=$(which $CALLING_FM 2>/dev/null)
 	[[ ! -x $app_name ]] && get_appname "inode/directory"  # get_appname requires $app_desktop
+	if grep -q 'nautilus' <<< $app_name; then # gksudo will fail for Nautilus, so use admin://
+		zenity --warning --title="Warning" --text="Filemanager-gksudo2 calling Nautilus with admin/root privileges. Gnome caches credentials, so occasionally may not ask for a password. BE CAREFUL!" 2>/dev/null
+		exec nautilus admin://"$LOCALPATH" >/dev/null 2>&1 # Bypass gksudo2 entirely
+	fi
+	if $sudo_wont_ask; then 	 # force password for directories
+		su -c : $USER <<< "$($SUDO_ASKPASS)" >/dev/null 2>&1 || error_end1 "Password Not Recognized"
+	fi	
 
 else # for files
+
+
+	sudo_znty gio info $LOCALPATH > /tmp/gk/giofile
+	gio_file_typ=$(grep 'standard::content-type' /tmp/gk/giofile | cut -d ' ' -f 4)
 	if [[ "$CALLING_FM" =~ dolphin|krusader|konqueror ]]; then # KDE apps use xdg-mime, not gio
 		file_typ=`xdg-mime query filetype "$LOCALPATH"`
 		[[ -z $file_typ ]] && file_typ=$gio_file_typ  # Fallback if xdg-mime not reading
@@ -188,10 +189,6 @@ by gksudo2 to call itself. Reset
 default app for this mimetype."
 fi
 rm /tmp/gk/giofile 
-if grep -q 'nautilus' <<< $app_name; then # gksudo will fail for Nautilus, so use admin:// 
-	zenity --warning --title="Warning" --text="Filemanager-gksudo2 calling Nautilus with admin/root privileges. Be careful!" 2>/dev/null
-	exec nautilus admin://"$LOCALPATH"
-fi
 LOCALPATH=$(sed "s#//#/#" <<< $LOCALPATH)   # Remove double leading slashes
 #LOCALPATH=$(printf '%q' "$LOCALPATH") # if needed to escape special chars for sudo call
 exec gksudo2 $app_name \"$LOCALPATH\"
@@ -199,4 +196,3 @@ exec gksudo2 $app_name \"$LOCALPATH\"
 error_end1 "${app_name} ${LOCALPATH} failed to
 work with gksudo2"
 fi
-
