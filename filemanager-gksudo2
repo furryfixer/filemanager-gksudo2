@@ -17,7 +17,7 @@
 # mimetypes are ignored to prevent accidental execution, among other
 # things. Also, some unknown/binary files, and most symlinks,
 # are prevented from opening. Use at your own risk!
-# Updated 10/2025.
+# Updated 01/2026.
 #============================================================#
 
 RECOGNIZED_FMS="thunar nautilus spacefm pcmanfm-qt pcmanfm dolphin caja konqueror nemo krusader"
@@ -64,7 +64,9 @@ If proper password, likely temporarily locked out."
 	fi
 }
 #============
-
+if [[ -z "$1" ]]; then
+	error_end1 "This calls filemanager-gksudo2, which should be invoked only by and from within file managers. A postional parameter is required."
+fi
 admin_call=false
 if [[ ! -x /bin/xdg-mime ]]; then
 	error_end1 "Missing xdg-utils dependency
