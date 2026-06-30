@@ -25,7 +25,7 @@ RECOGNIZED_FMS="thunar nautilus spacefm pcmanfm-qt pcmanfm dolphin caja konquero
 error_end1 () {
 	if ! (zenity --warning --title="Gksudo2 Error" --text="$*" --no-wrap --no-markup 2>/dev/null); then
 		sed 's^\\n^^g' <<< "$*"  # print error without zenity \n format
-		rm /tmp/gk/giofile 1>/dev/null 2>&1
+		rm -f /tmp/gk/giofile
  	fi
 	exit 1
 }
@@ -87,7 +87,7 @@ if [[ ! -f /tmp/gk/sudo-error ]]; then
 	touch /tmp/gk/sudo-error 
 	chmod 0666 /tmp/gk/sudo-error
 fi
-[[ -f /tmp/gk/zenity-sudo-passwd ]] && rm /tmp/gk/zenity-sudo-passwd
+rm -f /tmp/gk/zenity-sudo-passwd
 echo "#!/bin/bash
 zenity --entry --title=\"gksudo2\" --hide-text --text \"Enter sudo Password for \\\"${USER}\\\"          \"" > /tmp/gk/zenity-sudo-passwd 2>/dev/null
 chmod 0777 /tmp/gk/zenity-sudo-passwd
@@ -190,7 +190,7 @@ if [[ -z $app_name || $app_name == *"gksudo"* ]]; then
 by gksudo2 to call itself. Reset
 default app for this mimetype."
 fi
-rm /tmp/gk/giofile 
+rm -f /tmp/gk/giofile 
 LOCALPATH=$(sed "s#//#/#" <<< $LOCALPATH)   # Remove double leading slashes
 #LOCALPATH=$(printf '%q' "$LOCALPATH") # if needed to escape special chars for sudo call
 exec gksudo2 $app_name \"$LOCALPATH\"
