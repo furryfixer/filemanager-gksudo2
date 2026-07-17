@@ -28,8 +28,9 @@ Download or clone the files. Ensure that $PATH includes /usr/local/bin, unless p
 
 Then within the download directory, as regular user (NOT ROOT!):
 
-- ./fmgks2-user-setup
+- ./fmgks2-user-setup   
 
+This last script does not install the app, but must be run by each user allowed to use it.
 Dolphin users may require a symlink for proper integration of mimetype defaults:
   
   **sudo ln -s /etc/xdg/menus/plasma-applications.menu  /etc/xdg/menus/applications.menu**
@@ -40,7 +41,7 @@ Reboot, or at least restart your desktop session.
 
 The option showing in context menus will be "**gksudo2 (open as ROOT)**".  For all files, the default app for text/plain mime-types will be used. Once a directory is opened as root, the root user opens files as normal without restrictions (be careful).  
 
-In order for filemanager-gksudo2 to appear in context menus, it must advertise itself as an option for many mimetypes. The goal is to have gksudo appear as an "open with" or context menu option, but prevent it from being be the default for opening any file or directory. If no default exists for a file association advertised by filemanager-gksudo2.desktop, the default app for the text/plain mimetype will be set as default to accomplish this. If, despite this, the script detects that it is a default app, it will warn the user and refuse to run until the default is changed.
+In order for filemanager-gksudo2 to appear in context menus, it must advertise itself as an option for many mimetypes. The goal is to have gksudo appear as an "open with" or context menu option, but prevent it from being be the default for opening any file or directory. If no default exists for a file association advertised by filemanager-gksudo2.desktop, the default app for the text/plain mimetype will be set as default to accomplish this. If, despite this, the script detects that "gksudo2" is the default app, it will warn the user and refuse to run until the default is changed.
 
 The calling file manager will be used to open directories if it can be determined.  Otherwise, the script tries to use the most recent file manager opened if more than one, or falls back to the system default for the inode/directory mimetype. Please DO NOT install the .desktop file in the system location, where any new user will be tempted to use it (even though it requires sudo rights).  If more than one file/directory is selected, only the first will be acted on. For files, a "NOPASSWD" sudoer configuration is honored, but cached sudo credentials are not honored. For directories, "NOPASSWD" is ignored, and a password will always be required.
  
