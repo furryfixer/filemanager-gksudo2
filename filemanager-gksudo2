@@ -17,13 +17,16 @@
 # mimetypes are ignored to prevent accidental execution, among other
 # things. Also, some unknown/binary files, and most symlinks,
 # are prevented from opening. Use at your own risk!
-# Updated 01/2026.
+# Updated 07/2026.
 #============================================================#
 
 RECOGNIZED_FMS="thunar nautilus spacefm pcmanfm-qt pcmanfm dolphin caja konqueror nemo krusader"
 
+# dbus-run-session/dbus-launch used with zenity to avoid missing dialog text
+# on Wayland, often with later nvidia drivers. Qarma did not require.
+
 error_end1 () {
-	if ! (zenity --warning --title="Gksudo2 Error" --text="$*" --no-wrap --no-markup 2>/dev/null); then
+	if ! (dbus-run-session zenity --warning --title="Gksudo2 Error" --text="$*" --no-wrap --no-markup &>/dev/null); then
 		sed 's^\\n^^g' <<< "$*"  # print error without zenity \n format
 		rm -f /tmp/gk/giofile
  	fi
@@ -68,18 +71,18 @@ if [[ -z "$1" ]]; then
 	error_end1 "This calls filemanager-gksudo2, which should be invoked only by and from within file managers. A postional parameter is required."
 fi
 admin_call=false
-if [[ ! -x /usr/bin/xdg-mime ]]; then
+if ! command -v xdg-mime &>/dev/null; then
 	error_end1 "Missing xdg-utils dependency
 for filemanager-gksudo2"
 fi
-if [[ ! -x /usr/bin/gksudo2 ]] && [[ ! -x /usr/local/bin/gksudo2 ]]; then
+if ! command -v gksudo2 &>/dev/null; then
 	error_end1 "Missing the gksudo2 dependency
 for filemanager-gksudo2"
 fi
 # Check to see if sudo will bypass password
 sudo -nv  >/dev/null 2>&1 && sudo_wont_ask=true || sudo_wont_ask=false 
 [[ ! -d /tmp/gk ]] && (mkdir -m0777 /tmp/gk)  # avoid sticky bit issues if su before running
-if [[ ! -e /usr/bin/zenity ]]; then
+if if ! command -v zenity &>/dev/null; then
 	echo "STOP! Zenity is not found, and required to run gksudo2"
 	exit 1
 fi
@@ -88,8 +91,16 @@ if [[ ! -f /tmp/gk/sudo-error ]]; then
 	chmod 0666 /tmp/gk/sudo-error
 fi
 rm -f /tmp/gk/zenity-sudo-passwd
+# SUDO_ASKPASS fails with dbus-run-session. dbus-launch used for reasons above, but steps
+#   are needed to reduce orphaned dbus-daemons. Backgrounding dbus-launch allows to get
+#   dbus-daemon PID immediately, but this forces use of "wait" to proceed properly after.
 echo "#!/bin/bash
-zenity --entry --title=\"gksudo2\" --hide-text --text \"Enter sudo Password for \\\"${USER}\\\"          \"" > /tmp/gk/zenity-sudo-passwd 2>/dev/null
+last_dbus=\$(pgrep -n dbus-daemon)
+dbus-launch zenity --entry --title=\"gksudo2\" --hide-text --text \"Enter sudo Password for \\\"${USER}\\\"          \"
+ps &>/dev/null  # Only to force update of process tree
+new_dbus=\$(pgrep -n dbus-daemon)
+wait \$! &>/dev/null
+[[ \$new_dbus -ne \$last_dbus ]] && kill -- -\$new_dbus &>/dev/null" > /tmp/gk/zenity-sudo-passwd
 chmod 0777 /tmp/gk/zenity-sudo-passwd
 export SUDO_ASKPASS="/tmp/gk/zenity-sudo-passwd"
 FILDIR="$1"
@@ -119,7 +130,7 @@ for bad_fm in $NOT_FM_CMD; do
 				break
 			fi
 		done < /tmp/ps-tac
-		rm /tmp/ps-tac
+		rm -f /tmp/ps-tac
 	fi
 done
 if [[ -d $LOCALPATH ]]; then  # for Directories
@@ -140,7 +151,7 @@ cut -d = -f 2 | cut -d ";" -f 1`  # Insist on a sane default for inode/directory
 	app_name=$(which $CALLING_FM 2>/dev/null)
 	[[ ! -x $app_name ]] && get_appname "inode/directory"  # get_appname requires $app_desktop
 	if grep -q 'nautilus' <<< $app_name; then # gksudo will fail for Nautilus, so use admin://
-		zenity --warning --title="Warning" --text="Filemanager-gksudo2 calling Nautilus with admin/root privileges. Gnome caches credentials, so occasionally may not ask for a password. BE CAREFUL!" 2>/dev/null
+		dbus-run-session zenity --warning --title="Warning" --text="Filemanager-gksudo2 calling Nautilus with admin/root privileges. Gnome caches credentials, so occasionally may not ask for a password. BE CAREFUL!" &>/dev/null
 		exec nautilus admin://"$LOCALPATH" >/dev/null 2>&1 # Bypass gksudo2 entirely
 	fi
 	if $sudo_wont_ask; then 	 # force password for directories
@@ -148,7 +159,6 @@ cut -d = -f 2 | cut -d ";" -f 1`  # Insist on a sane default for inode/directory
 	fi	
 
 else # for files
-
 
 	sudo_znty gio info $LOCALPATH > /tmp/gk/giofile
 	gio_file_typ=$(grep 'standard::content-type' /tmp/gk/giofile | cut -d ' ' -f 4)
