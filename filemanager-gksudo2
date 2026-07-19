@@ -82,7 +82,7 @@ fi
 # Check to see if sudo will bypass password
 sudo -nv  >/dev/null 2>&1 && sudo_wont_ask=true || sudo_wont_ask=false 
 [[ ! -d /tmp/gk ]] && (mkdir -m0777 /tmp/gk)  # avoid sticky bit issues if su before running
-if if ! command -v zenity &>/dev/null; then
+if ! command -v zenity &>/dev/null; then
 	echo "STOP! Zenity is not found, and required to run gksudo2"
 	exit 1
 fi
